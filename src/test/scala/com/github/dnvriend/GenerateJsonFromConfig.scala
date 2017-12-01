@@ -23,7 +23,12 @@ object Person {
   implicit val format: Format[Person] = Json.format
 }
 
-case class Person(name: String, age: Int)
+// see: https://pureconfig.github.io/docs/override-behaviour-for-sealed-families.html
+sealed trait Mammal {
+  def name: String; def age: Int
+}
+case class Cat(name: String, age: Int) extends Mammal
+case class Person(name: String, age: Int) extends Mammal
 
 sealed trait KeySchema {
   def name: String
@@ -82,7 +87,20 @@ class GenerateJsonFromConfig extends TestSpec {
         |      name = version
         |      datatype = S
         |    }
-        |
+        |    people {
+        |     foo {
+        |      name = "foox"
+        |      age = 42
+        |    }
+        |    bar {
+        |      name = "barx"
+        |      age = 43
+        |    }
+        |    baz {
+        |      name = "bazx"
+        |      age = 44
+        |    }
+        |    }
         |    global-secondary-indexes = [
         |      {
         |        index-name = foo
@@ -110,6 +128,9 @@ class GenerateJsonFromConfig extends TestSpec {
 
     dynamodb.root().keySet().asScala.toList.map(name => (name, dynamodb.getConfig(name))).foreach {
       case (name, conf) =>
+        val xx = loadConfig[Map[String, Mammal]](conf.getConfig("people"))
+        println("===> map = " + xx)
+        println("===> " + conf.root().keySet().asScala.toList)
         println(s"found key: $name; config: $conf")
         val s = loadConfig[Table](conf)
         println("table: ===>" + s)
