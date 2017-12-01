@@ -16,14 +16,31 @@ package com.github.dnvriend
 
 import com.typesafe.config.{ Config, ConfigFactory, ConfigRenderOptions }
 import play.api.libs.json.{ Format, Json }
+import scala.collection.JavaConverters._
+import pureconfig._
 
 object Person {
   implicit val format: Format[Person] = Json.format
 }
+
 case class Person(name: String, age: Int)
 
+sealed trait KeySchema {
+  def name: String
+
+  def `type`: String
+}
+
+case class HashKey(name: String, `type`: String = "S") extends KeySchema
+
+case class RangeKey(name: String, `type`: String = "S") extends KeySchema
+
+case class GlobalSecondaryIndex(indexName: String, keySchemas: List[KeySchema] = Nil, projectionType: String = "", rcu: Int = 1, wcu: Int = 1)
+
+case class Table(name: String, hashKey: HashKey, rangeKey: Option[RangeKey] = None, globalSecondaryIndexes: List[GlobalSecondaryIndex], stream: Option[String] = None, rcu: Int = 1, wcu: Int = 1, configName: String = "")
+
 class GenerateJsonFromConfig extends TestSpec {
-  it should "define a person in config, extract the object and parse it, and convert it to a value object" in {
+  ignore should "define a person in config, extract the object and parse it, and convert it to a value object" in {
     val cfg: Config = ConfigFactory.parseString(
       """
         |person {
@@ -34,5 +51,55 @@ class GenerateJsonFromConfig extends TestSpec {
     val personJson = cfg.getObject("person").render(ConfigRenderOptions.concise())
     personJson shouldBe """{"age":42,"name":"foo"}"""
     Json.parse(personJson).as[Person] shouldBe Person("foo", 42)
+  }
+
+  it should "parse a custom config into a custom case class" in {
+    val cfg = ConfigFactory.parseString(
+      """
+        |dynamodb {
+        |  DapRepoSchemas {
+        |    name = dap_repo_schemas
+        |    hash-key = {
+        |      name = schemaKey
+        |      type = S
+        |    }
+        |    range-key = {
+        |      name = version
+        |      type = S
+        |    }
+        |
+        |    global-secondary-indexes = [
+        |      {
+        |        index-name = foo
+        |          key-schemas = [
+        |            {
+        |              hash-key = {
+        |                name = fingerprint
+        |                type = B
+        |              }
+        |            }
+        |          ]
+        |          projection-type = ALL
+        |          rcu = 2
+        |          wcu = 2
+        |
+        |      }
+        |    ]
+        |    stream = KEYS_ONLY
+        |    rcu = 1
+        |    wcu = 1
+        |  }
+        |}
+      """.stripMargin)
+
+    val dynamodb = cfg
+
+    dynamodb.getConfig("dynamodb").root().keySet().asScala.toList.map(name => (name, dynamodb.getConfig(name))).foreach {
+      case (name, conf) =>
+        println(s"found key: $name; config: $conf")
+        val s = loadConfig[Table](conf)
+        println("table: ===>" + s)
+
+    }
   }
 }

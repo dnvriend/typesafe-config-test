@@ -8,6 +8,7 @@ scalaVersion := "2.12.4"
 
 libraryDependencies += "com.typesafe" % "config" % "1.3.1"
 libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.2.16"
+libraryDependencies += "com.github.pureconfig" %% "pureconfig" % "0.8.0"
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.6.7"
 libraryDependencies += "org.typelevel" %% "scalaz-scalatest" % "1.1.2" % Test
 libraryDependencies += "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % Test
