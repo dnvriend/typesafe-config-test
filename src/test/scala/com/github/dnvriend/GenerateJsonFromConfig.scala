@@ -28,16 +28,31 @@ case class Person(name: String, age: Int)
 sealed trait KeySchema {
   def name: String
 
-  def `type`: String
+  def datatype: String
 }
 
-case class HashKey(name: String, `type`: String = "S") extends KeySchema
+case class HashKey(name: String, datatype: String = "S") extends KeySchema
 
-case class RangeKey(name: String, `type`: String = "S") extends KeySchema
+case class RangeKey(name: String, datatype: String = "S") extends KeySchema
 
-case class GlobalSecondaryIndex(indexName: String, keySchemas: List[KeySchema] = Nil, projectionType: String = "", rcu: Int = 1, wcu: Int = 1)
+case class GlobalSecondaryIndex(
+    indexName: String,
+    keySchemas: List[KeySchema] = Nil,
+    projectionType: String = "",
+    rcu: Int = 1,
+    wcu: Int = 1
+)
 
-case class Table(name: String, hashKey: HashKey, rangeKey: Option[RangeKey] = None, globalSecondaryIndexes: List[GlobalSecondaryIndex], stream: Option[String] = None, rcu: Int = 1, wcu: Int = 1, configName: String = "")
+case class Table(
+    name: String,
+    hashKey: HashKey,
+    rangeKey: Option[RangeKey] = None,
+    globalSecondaryIndexes: List[GlobalSecondaryIndex],
+    stream: Option[String] = None,
+    rcu: Int = 1,
+    wcu: Int = 1,
+    configName: String = ""
+)
 
 class GenerateJsonFromConfig extends TestSpec {
   ignore should "define a person in config, extract the object and parse it, and convert it to a value object" in {
@@ -61,11 +76,11 @@ class GenerateJsonFromConfig extends TestSpec {
         |    name = dap_repo_schemas
         |    hash-key = {
         |      name = schemaKey
-        |      type = S
+        |      datatype = S
         |    }
         |    range-key = {
         |      name = version
-        |      type = S
+        |      datatype = S
         |    }
         |
         |    global-secondary-indexes = [
@@ -73,11 +88,10 @@ class GenerateJsonFromConfig extends TestSpec {
         |        index-name = foo
         |          key-schemas = [
         |            {
-        |              hash-key = {
+        |                type = "hashkey"
         |                name = fingerprint
-        |                type = B
+        |                datatype = B
         |              }
-        |            }
         |          ]
         |          projection-type = ALL
         |          rcu = 2
@@ -92,9 +106,9 @@ class GenerateJsonFromConfig extends TestSpec {
         |}
       """.stripMargin)
 
-    val dynamodb = cfg
+    val dynamodb: Config = cfg.getConfig("dynamodb")
 
-    dynamodb.getConfig("dynamodb").root().keySet().asScala.toList.map(name => (name, dynamodb.getConfig(name))).foreach {
+    dynamodb.root().keySet().asScala.toList.map(name => (name, dynamodb.getConfig(name))).foreach {
       case (name, conf) =>
         println(s"found key: $name; config: $conf")
         val s = loadConfig[Table](conf)
