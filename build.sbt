@@ -17,6 +17,7 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % Test
 // testing configuration
 fork in Test := true
 parallelExecution := false
+envVars in Test := Map("FIRST_NAME" -> "my_first_name")
 
 // enable scala code formatting //
 import scalariform.formatter.preferences._
